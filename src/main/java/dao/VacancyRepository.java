@@ -77,8 +77,6 @@ public class VacancyRepository {
         }
         return null;
     }
-
-    /** Поиск по ключевому слову в названии или описании. */
     public List<Vacancy> findByKeyword(String kw) {
         List<Vacancy> list = new ArrayList<>();
         String sql = """
