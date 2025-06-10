@@ -1,6 +1,6 @@
 package service;
 
-import dao.VacancyRepository;           // ← правильный импорт
+import repository.VacancyRepository;           // ← правильный импорт
 import model.Vacancy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

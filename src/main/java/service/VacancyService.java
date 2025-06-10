@@ -1,6 +1,6 @@
 package service;
 
-import dao.VacancyRepository;
+import repository.VacancyRepository;
 import model.Vacancy;
 import parser.HhParser;
 

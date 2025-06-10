@@ -1,4 +1,5 @@
 -- 1) Создаём/пересоздаём роль jobuser
+
 DROP ROLE IF EXISTS jobuser;
 CREATE ROLE jobuser LOGIN PASSWORD 'jobpass' CREATEDB;
 
@@ -26,3 +27,6 @@ CREATE TABLE IF NOT EXISTS vacancy (
     active          BOOLEAN       DEFAULT TRUE,
     last_updated    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
     );
+
+
+select * from vacancy;

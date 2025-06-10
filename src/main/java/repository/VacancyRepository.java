@@ -1,4 +1,4 @@
-package dao;
+package repository;
 
 import db.DatabaseManager;
 import model.Vacancy;
@@ -6,49 +6,50 @@ import model.Vacancy;
 import java.sql.*;
 import java.util.*;
 
-/** CRUD-репозиторий для таблицы vacancy. */
 public class VacancyRepository {
 
+    /* ------------------------------------------------------------------ */
+    /* saveOrUpdate — теперь пишет category и description                 */
+    /* ------------------------------------------------------------------ */
     public void saveOrUpdate(Vacancy v) {
         String sql = """
             INSERT INTO vacancy
-              (hh_id,title,company,city,salary_min,salary_max,active)
-            VALUES (?,?,?,?,?,?,true)
+              (hh_id,title,company,city,salary_min,salary_max,
+               category,description,active)
+            VALUES (?,?,?,?,?,?,?,?,true)
             ON CONFLICT (hh_id) DO UPDATE SET
-              title        = EXCLUDED.title,
-              company      = EXCLUDED.company,
-              city         = EXCLUDED.city,
-              salary_min   = EXCLUDED.salary_min,
-              salary_max   = EXCLUDED.salary_max,
-              active       = true
+               title        = EXCLUDED.title,
+               company      = EXCLUDED.company,
+               city         = EXCLUDED.city,
+               salary_min   = EXCLUDED.salary_min,
+               salary_max   = EXCLUDED.salary_max,
+               category     = EXCLUDED.category,
+               description  = EXCLUDED.description,
+               active       = true
             """;
         try (Connection c = getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
+
             ps.setString(1, v.getHhId());
             ps.setString(2, v.getTitle());
             ps.setString(3, v.getCompany());
             ps.setString(4, v.getCity());
-            if (v.getSalaryMin() != null) ps.setInt(5, v.getSalaryMin()); else ps.setNull(5, Types.INTEGER);
-            if (v.getSalaryMax() != null) ps.setInt(6, v.getSalaryMax()); else ps.setNull(6, Types.INTEGER);
+
+            if (v.getSalaryMin()!=null) ps.setInt(5, v.getSalaryMin());
+            else ps.setNull(5, Types.INTEGER);
+
+            if (v.getSalaryMax()!=null) ps.setInt(6, v.getSalaryMax());
+            else ps.setNull(6, Types.INTEGER);
+
+            ps.setString(7, v.getCategory());
+            ps.setString(8, v.getDescription());
+
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("saveOrUpdate error", e);
         }
     }
 
-    public void deactivateOldVacancies(Set<String> currentIds) {
-        if (currentIds.isEmpty()) return;
-        String placeholders = String.join(",", currentIds.stream().map(i -> "?").toList());
-        String sql = "UPDATE vacancy SET active = FALSE WHERE hh_id NOT IN (" + placeholders + ")";
-        try (Connection c = getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            int i = 1;
-            for (String id : currentIds) ps.setString(i++, id);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("deactivateOldVacancies error", e);
-        }
-    }
     /** Все активные вакансии. */
     public List<Vacancy> findAll() {
         List<Vacancy> list = new ArrayList<>();
@@ -114,5 +115,8 @@ public class VacancyRepository {
         v.setDescription(rs.getString("description"));
         v.setCategory(rs.getString("category"));
         return v;
+    }
+
+    public void deactivateOldVacancies(Set<String> currentIds) {
     }
 }

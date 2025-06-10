@@ -15,24 +15,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Парсер, использующий стандартный java.net.http.HttpClient
- * для обращения к JSON-API hh.ru.
+ * Парсинг через API hh.ru:
+ *  1) /vacancies?text=… – получаем список id.
+ *  2) /vacancies/{id}   – берём подробную карточку,
+ *     чтобы заполнить category и description.
  */
 public class HhParser {
 
-    private static final String API =
+    private static final String LIST_API =
             "https://api.hh.ru/vacancies?text=%s&page=%d&per_page=20";
-    private static final String USER_AGENT =
+    private static final String CARD_API =
+            "https://api.hh.ru/vacancies/%s";
+    private static final String UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final HttpClient  CLIENT  = HttpClient.newBuilder()
+    private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
     /**
      * @param keyword ключевые слова поиска
-     * @param pages   сколько страниц (0…pages-1)
+     * @param pages   сколько страниц (0..pages-1)
      */
     public List<Vacancy> fetchVacancies(String keyword, int pages) {
         List<Vacancy> list = new ArrayList<>();
@@ -40,34 +44,57 @@ public class HhParser {
         try {
             for (int page = 0; page < pages; page++) {
                 String url = String.format(
-                        API,
+                        LIST_API,
                         URLEncoder.encode(keyword, StandardCharsets.UTF_8),
                         page);
 
-                HttpRequest req = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .timeout(Duration.ofSeconds(10))
-                        .header("User-Agent", USER_AGENT)
-                        .GET()
-                        .build();
+                JsonNode root = sendJson(url);
 
-                HttpResponse<byte[]> resp =
-                        CLIENT.send(req, HttpResponse.BodyHandlers.ofByteArray());
-
-                JsonNode root = MAPPER.readTree(resp.body());
                 for (JsonNode item : root.get("items")) {
-                    list.add(toVacancy(item));
-                }
+                    Vacancy v = toVacancy(item);
 
-                Thread.sleep(500); // не бомбим API
+                    /* --- подробная карточка --- */
+                    JsonNode card = sendJson(String.format(CARD_API, v.getHhId()));
+
+                    // category / professional_roles
+                    JsonNode roles = card.get("professional_roles");
+                    if (roles != null && roles.size() > 0) {
+                        v.setCategory(roles.get(0).get("name").asText());
+                    }
+
+                    // description пригодится для поиска
+                    JsonNode desc = card.get("description");
+                    if (desc != null && !desc.isNull()) {
+                        // убираем html-теги
+                        v.setDescription(desc.asText().replaceAll("<[^>]+>", ""));
+                    }
+
+                    list.add(v);
+                    Thread.sleep(200);          // пауза между карточками
+                }
+                Thread.sleep(500);              // пауза между страницами
             }
         } catch (Exception e) {
-            System.err.println("Ошибка API hh.ru: " + e.getMessage());
+            System.err.println("API hh.ru: " + e.getMessage());
         }
         return list;
     }
 
-    /** Преобразуем JSON одной вакансии в нашу модель. */
+    /* --------------------------------------------------------------------- */
+
+    private JsonNode sendJson(String url) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(10))
+                .header("User-Agent", UA)
+                .GET()
+                .build();
+        HttpResponse<byte[]> rsp =
+                CLIENT.send(req, HttpResponse.BodyHandlers.ofByteArray());
+        return MAPPER.readTree(rsp.body());
+    }
+
+    /** mapping «короткой» записи из /vacancies?text… */
     private Vacancy toVacancy(JsonNode n) {
         Vacancy v = new Vacancy();
         v.setHhId(n.get("id").asText());
@@ -83,10 +110,6 @@ public class HhParser {
             if (!sal.get("to").isNull())
                 v.setSalaryMax(sal.get("to").asInt());
         }
-        JsonNode roles = n.get("professional_roles");
-        if (roles != null && roles.size() > 0)
-            v.setCategory(roles.get(0).get("name").asText());
-
         v.setActive(true);
         return v;
     }

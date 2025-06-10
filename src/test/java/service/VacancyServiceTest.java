@@ -1,15 +1,12 @@
 package service;
 
-import dao.VacancyRepository;          // ← добавили
+import repository.VacancyRepository;          // ← добавили
 import model.Vacancy;
 import parser.HhParser;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Тесты для VacancyService.
