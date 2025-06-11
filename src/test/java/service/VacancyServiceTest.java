@@ -8,9 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import java.lang.reflect.Field;
 import java.util.*;
 
-/**
- * Тесты для VacancyService.
- */
 public class VacancyServiceTest {
 
     private VacancyService service;
@@ -22,7 +19,6 @@ public class VacancyServiceTest {
         savedIds       = new ArrayList<>();
         deactivatedSets= new ArrayList<>();
 
-        // заглушка репозитория
         VacancyRepository stubRepo = new VacancyRepository() {
             @Override
             public void saveOrUpdate(Vacancy v){ savedIds.add(v.getHhId()); }
@@ -30,7 +26,6 @@ public class VacancyServiceTest {
             public void deactivateOldVacancies(Set<String> ids){ deactivatedSets.add(ids); }
         };
 
-        // заглушка парсера
         HhParser stubParser = new HhParser() {
             @Override public List<Vacancy> fetchVacancies(String kw,int pages){
                 Vacancy a=new Vacancy(); a.setHhId("A");
@@ -41,7 +36,6 @@ public class VacancyServiceTest {
 
         service = new VacancyService();
 
-        // внедряем заглушки через Reflection
         Field repoF = VacancyService.class.getDeclaredField("repository");
         repoF.setAccessible(true); repoF.set(service, stubRepo);
         Field parsF = VacancyService.class.getDeclaredField("parser");

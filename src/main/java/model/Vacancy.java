@@ -122,9 +122,7 @@ public class Vacancy {
         this.lastUpdated = lastUpdated;
     }
 
-    /* геттер/сеттер для salaryMax */
     public Integer getSalaryMax() { return salaryMax; }
     public void setSalaryMax(Integer salaryMax){ this.salaryMax = salaryMax; }
 
-    /* при необходимости добавьте остальные геттеры/сеттеры */
 }

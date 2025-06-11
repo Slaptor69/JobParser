@@ -64,7 +64,6 @@ public class VacancyRepository {
         return list;
     }
 
-    /** Поиск по hh_id (уникальный). */
     public Vacancy findByHhId(String hhId) {
         String sql = "SELECT * FROM vacancy WHERE hh_id = ?";
         try (Connection c = getConnection();
